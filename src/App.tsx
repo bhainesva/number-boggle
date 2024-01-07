@@ -73,7 +73,6 @@ function App() {
       //@ts-ignore library types are wrong
       const o = m.eval(ref.value);
       setOutput(String(o));
-      console.log(o, isValid, completed())
       if (isValid && !completed()[o] && o >= 1 && o <= 20) {
         setCompleted(prev => ({...prev, [String(o)]: ref?.value}))
       } 
@@ -123,9 +122,7 @@ function App() {
       <ol class="AnswerGrid gap-2 w-full max-w-[800px]">
         <For each={Object.entries(completed())}>{(item) => 
           {
-          console.log("For loop iterator: ", item);
           const hasSolution = () => {
-            console.log("inside has sol signal?")
             return !!item[1];
           }
 
