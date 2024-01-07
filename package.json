@@ -1,0 +1,28 @@
+{
+  "name": "number-boggle",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@solid-primitives/input-mask": "^0.2.0",
+    "classnames": "^2.5.1",
+    "math-expression-evaluator": "^2.0.4",
+    "solid-icons": "^1.1.0",
+    "solid-js": "^1.8.7",
+    "solid-tippy": "^0.2.1",
+    "tippy.js": "^6.3.7"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8",
+    "vite-plugin-solid": "^2.8.0"
+  }
+}
