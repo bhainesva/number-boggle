@@ -9,7 +9,12 @@
 
 .AnswerGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: repeat(7, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(10, minmax(0, 1fr));
   grid-auto-flow: column;
+
+  @screen md {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+  }
 }

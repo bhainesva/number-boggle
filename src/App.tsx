@@ -98,7 +98,7 @@ function App() {
       </button>
 
       <div class="flex justify-between h-[60px] w-full max-w-[800px] my-10">
-        <input class="text-2xl rounded p-3 text-black w-[500px] bg-slate-300" ref={ref} type="text" onInput={handle2} onPaste={handle2} />
+        <input class="text-2xl rounded p-3 text-black w-full max-w-[500px] bg-slate-300" ref={ref} type="text" onInput={handle2} onPaste={handle2} />
         <div class="flex flex-col items-center">
           <div class="relative basis-1/3 shrink-0">
             <Show when={!expressionIsValid()}>
