@@ -1,18 +1,13 @@
 import { For, createEffect, createSignal, Show } from 'solid-js'
 import Mexp from 'math-expression-evaluator';
-import {
-  createInputMask,
-} from "@solid-primitives/input-mask";
 import { IoWarning } from 'solid-icons/io'
 import classNames from 'classnames';
-import { tippy, useTippy } from 'solid-tippy';
 import './App.css'
 
 function getRandomArbitrary(min: number, max: number) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
-const validCharacters = /[^\s!\/\^\*\+\-()]/g
 const defaultCompleted = [...new Array(20)].reduce((out, _, i) => {out[i+1] = ""; return out}, {})
 
 function App() {
@@ -40,8 +35,7 @@ function App() {
     }
   })
 
-  let ref: HTMLInputElement;
-  const mask = createInputMask([validCharacters, (value) => digits().includes(value) ? value : '']);
+  let ref: HTMLInputElement | undefined;
 
   const handle = () => {
     const newDigits = [...new Array(4)].map(_ => String(getRandomArbitrary(1, 10)));
@@ -52,8 +46,8 @@ function App() {
     setTime(180);
   }
 
-  const handle2 = (e: InputEvent | ClipboardEvent) => {
-    const input = ref.value || '';
+  const handle2 = () => {
+    const input = ref?.value || '';
     const m = new Mexp();
     let isValid = true;
 
@@ -75,12 +69,13 @@ function App() {
     }
 
     try {
-      setExpressionIsValid(isValid || !ref.value)
+      setExpressionIsValid(isValid || !ref?.value)
+      //@ts-ignore library types are wrong
       const o = m.eval(ref.value);
       setOutput(String(o));
       console.log(o, isValid, completed())
       if (isValid && !completed()[o] && o >= 1 && o <= 20) {
-        setCompleted(prev => ({...prev, [String(o)]: ref.value}))
+        setCompleted(prev => ({...prev, [String(o)]: ref?.value}))
       } 
     } catch (e) {
       setExpressionIsValid(false);
@@ -126,7 +121,7 @@ function App() {
       </div>
 
       <ol class="AnswerGrid gap-2 w-full max-w-[800px]">
-        <For each={Object.entries(completed())}>{(item, i) => 
+        <For each={Object.entries(completed())}>{(item) => 
           {
           console.log("For loop iterator: ", item);
           const hasSolution = () => {
@@ -136,7 +131,11 @@ function App() {
 
           return (
             <li class={classNames("flex w-full shrink-0 grow-0 rounded justify-center items-center transition-all", hasSolution() ? "bg-green-500" : "bg-slate-500")}>
-              <button onClick={_ => ref.value = item[1]} disabled={!hasSolution()} class="w-full h-full font-bold p-3">
+              <button onClick={_ => {
+                if (ref) {
+                  ref.value = item[1]
+                }
+              }} disabled={!hasSolution()} class="w-full h-full font-bold p-3">
                 {item[0]}{hasSolution() && <span> = {item[1]}</span>}
               </button>
             </li>
