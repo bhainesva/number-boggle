@@ -15,7 +15,7 @@ function App() {
   const [inProgress, setInProgress] = createSignal(false);
   const [time, setTime] = createSignal(0);
   const [output, setOutput] = createSignal(" ");
-  const [completed, setCompleted] = createSignal<Record<number, string>>(defaultCompleted)
+  const [completed, setCompleted] = createSignal<Record<number, {expr: string, onTime: boolean}>>(defaultCompleted)
   const [expressionIsValid, setExpressionIsValid] = createSignal(true);
   const [tooltipShown, setTooltipShown] = createSignal(false);
 
@@ -30,7 +30,7 @@ function App() {
   setInterval(() => setTime(time => inProgress() ? time - 1 : time), 1000)
 
   createEffect(() => {
-    if (time() === 0) {
+    if (time() <= 0) {
       setInProgress(false);
     }
   })
@@ -73,8 +73,8 @@ function App() {
       //@ts-ignore library types are wrong
       const o = m.eval(ref.value);
       setOutput(String(o));
-      if (isValid && !completed()[o] && o >= 1 && o <= 20) {
-        setCompleted(prev => ({...prev, [String(o)]: ref?.value}))
+      if (isValid && String(o) in completed() && !completed()[o] && o >= 1 && o <= 20) {
+        setCompleted(prev => ({...prev, [String(o)]: {expr: ref?.value, onTime: inProgress()}}))
       } 
     } catch (e) {
       setExpressionIsValid(false);
@@ -97,7 +97,7 @@ function App() {
       </button>
 
       <div class="flex justify-between h-[60px] w-full max-w-[800px] my-10">
-        <input class="text-2xl rounded p-3 text-black w-full max-w-[500px] bg-slate-300" ref={ref} type="text" onInput={handle2} onPaste={handle2} />
+        <input class="text-2xl shrink-0 rounded p-3 text-black w-full max-w-[500px] bg-slate-300" ref={ref} type="text" onInput={handle2} onPaste={handle2} />
         <div class="flex flex-col items-center">
           <div class="relative basis-1/3 shrink-0">
             <Show when={!expressionIsValid()}>
@@ -114,7 +114,7 @@ function App() {
           </div>
           <div class="shrink-0 basis-1/3"></div>
         </div>
-        <div class="flex h-full items-center justify-center basis-1/4 text-2xl text-black bg-slate-300 rounded p-4">
+        <div class="flex justify-start overflow-hidden h-full items-center basis-1/4 text-2xl text-black bg-slate-300 rounded p-4">
           {output()}
         </div>
       </div>
@@ -123,17 +123,22 @@ function App() {
         <For each={Object.entries(completed())}>{(item) => 
           {
           const hasSolution = () => {
-            return !!item[1];
+            return !!item[1].expr;
           }
 
+          const onTime = () => {
+            return !!item[1].onTime;
+          }
+
+
           return (
-            <li class={classNames("flex w-full shrink-0 grow-0 rounded justify-center items-center transition-all", hasSolution() ? "bg-green-500" : "bg-slate-500")}>
+            <li class={classNames("flex w-full shrink-0 grow-0 rounded justify-center items-center transition-all", {"bg-green-500" : hasSolution() && onTime(), "bg-yellow-500": hasSolution() && !onTime(), "bg-slate-500": !hasSolution()})}>
               <button onClick={_ => {
                 if (ref) {
-                  ref.value = item[1]
+                  ref.value = item[1].expr
                 }
               }} disabled={!hasSolution()} class="w-full h-full font-bold p-3">
-                {item[0]}{hasSolution() && <span> = {item[1]}</span>}
+                {item[0]}{hasSolution() && <span> = {item[1].expr}</span>}
               </button>
             </li>
           )
