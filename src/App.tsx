@@ -194,14 +194,17 @@ function InnerApp() {
   )
 }
 
-function GameSummary(props: {completed: Record<string, {onTime: boolean}>, numbersSolved: number, time: number}) {
+function GameSummary(props: {completed: Record<string, {expr: string, onTime: boolean}>, numbersSolved: number, time: number}) {
   const score = () => props.numbersSolved === WINNING_SCORE 
     ? `${Math.floor((TOTAL_TIME  - props.time) / 60)}:${String((TOTAL_TIME - props.time) % 60).padStart(2, "0")}` 
     : `${props.numbersSolved}/${WINNING_SCORE}`;
 
   const scoreSummaryString = () => Object.entries(props.completed).reduce((out, cur, i) => {
     const space = i % 5 === 4 ? " " : ''
-    return out + (cur[1].onTime ? `🟩${space}` : `⬜${space}`)
+    const char = cur[1].expr && cur[1].onTime 
+      ? '🟩'
+      : (cur[1].expr && !cur[1].onTime ? '🟨' : '⬜')
+    return `${out}${char}${space}`;
   }, "");
 
   const clipboardScore = () => props.numbersSolved === WINNING_SCORE
