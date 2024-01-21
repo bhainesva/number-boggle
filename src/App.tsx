@@ -11,9 +11,10 @@ import {
 import './App.css'
 import Header from './Header';
 import InfoModal from './InfoModal';
-import { TOTAL_TIME, WINNING_SCORE } from './const';
+import { STORAGE_KEY, TOTAL_TIME, WINNING_SCORE } from './const';
 import { getRandomArbitrary, hash } from './utils';
 import GameSummary from './GameSummary';
+import { cyrb128, splitmix32 } from './rand';
 
 const defaultCompleted = [...new Array(20)].reduce((out, _, i) => { out[i + 1] = ""; return out }, {})
 
@@ -25,18 +26,57 @@ function App() {
   )
 }
 
+function getTodaysNumbers(): string[] {
+  const seed = (new Date()).toDateString();
+  const rand = splitmix32(cyrb128(seed)[0]);
+
+  return [...(new Array(4))].map(_ => String(
+    Math.floor(rand() * (10 - 1) + 1)
+  ))
+}
+
 function InnerApp() {
   const [digits, setDigits] = createSignal<string[]>(["?", "?", "?", "?"]);
   const [inProgress, setInProgress] = createSignal(false);
-  const [time, setTime] = createSignal(0);
+  const [dailyGameCompleted, setDailyGameCompleted] = createSignal(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')?.date === (new Date().toDateString()))
+  const [time, setTime] = createSignal(TOTAL_TIME);
   const [infoModalOpen, setInfoModalOpen] = createSignal(false);
   const [initialParamsUsed, setInitialParamsUsed] = createSignal(false);
   const [gameStarted, setGameStarted] = createSignal(false);
+  const [todaysGame, setTodaysGame] = createSignal(false);
   const [output, setOutput] = createSignal(" ");
-  const [completed, setCompleted] = createSignal<Record<number, { expr: string, onTime: boolean }>>(defaultCompleted)
+  const [completed, setCompleted] = createSignal<Record<number, { expr: string, onTime: boolean }>>({...defaultCompleted})
   const [expressionIsValid, setExpressionIsValid] = createSignal(true);
   const [tooltipShown, setTooltipShown] = createSignal(false);
   const [params, setParams] = useSearchParams();
+  let ref: HTMLInputElement | undefined;
+
+  const handleStartTodaysGame = () => {
+    const newDigits = getTodaysNumbers();
+    if (ref) {
+      ref.value = '';
+      setOutput('');
+      ref.focus();
+    }
+
+    setTime(TOTAL_TIME);
+    setGameStarted(true);
+    setDigits(newDigits);
+    setParams({ game: hash(newDigits.join('')) })
+    setTodaysGame(true);
+    setInitialParamsUsed(true);
+
+    const existingData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (existingData?.date === (new Date()).toDateString()) {
+      setCompleted(existingData.completed)
+      setInProgress(false);
+      return;
+    }
+
+    setInProgress(true);
+    setCompleted(defaultCompleted);
+    setExpressionIsValid(true);
+  }
 
   const expectedCounts = () => {
     const m: Record<string, number> = {}
@@ -46,22 +86,36 @@ function InnerApp() {
     return m
   }
 
+  const endDailyGame = () => {
+    setDailyGameCompleted(true);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      date: (new Date()).toDateString(),
+      completed: completed(),
+    }));
+  }
+
   setInterval(() => setTime(time => inProgress() ? time - 1 : time), 1000);
   const numbersSolved = () => Object.entries(completed()).reduce((tot, cur) => tot + (cur[1].onTime ? 1 : 0), 0);
 
   createEffect(() => {
     if (time() <= 0) {
       setInProgress(false);
+
+      if (todaysGame()) {
+        endDailyGame();
+      }
     }
   })
 
   createEffect(() => {
     if (numbersSolved() === WINNING_SCORE) {
       setInProgress(false);
+
+      if (todaysGame()) {
+        endDailyGame();
+      }
     }
   })
-
-  let ref: HTMLInputElement | undefined;
 
   const handleGameStart = () => {
     const initialGame = params['game'];
@@ -69,7 +123,14 @@ function InnerApp() {
       ? [...new Array(4)].map(_ => String(getRandomArbitrary(1, 10)))
       : String(hash(initialGame)).split("");
 
+    if (ref) {
+      ref?.focus();
+      ref.value = '';
+      setOutput('');
+    }
+    
     setGameStarted(true);
+    setTodaysGame(false);
     setDigits(newDigits);
     setParams({ game: hash(newDigits.join('')) })
     setInitialParamsUsed(true);
@@ -117,7 +178,14 @@ function InnerApp() {
 
   return (
     <>
-      <Header time={time()} inProgress={inProgress()} onClick={() => setInfoModalOpen(true)} />
+      <Header 
+        time={time()}
+        dailyGameCompleted={dailyGameCompleted()}
+        isTodaysGame={todaysGame()}
+        inProgress={inProgress()}
+        onClick={() => setInfoModalOpen(true)} 
+        onStartTodaysGame={handleStartTodaysGame}
+      />
       <div class="container my-4 flex flex-col items-center">
         <Toaster />
         <Show when={infoModalOpen()}>
@@ -173,7 +241,7 @@ function InnerApp() {
             }
 
             return (
-              <li class={classNames("flex w-full shrink-0 grow-0 rounded justify-center items-center transition-all", { "bg-green-600": hasSolution() && onTime(), "bg-yellow-500": hasSolution() && !onTime(), "bg-slate-500": !hasSolution() })}>
+              <li class={classNames("flex w-full shrink-0 grow-0 rounded justify-center items-center transition-all", { "bg-green-600": hasSolution() && onTime(), "bg-yellow-600": hasSolution() && !onTime(), "bg-slate-500": !hasSolution() })}>
                 <button onClick={_ => {
                   if (ref) {
                     ref.value = item[1].expr
