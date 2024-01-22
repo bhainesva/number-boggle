@@ -46,7 +46,6 @@ export default function InfoModal(props: Props) {
 					</ul>
 				</div>
 			</div>
-
 		</>
 	)
 }

@@ -12,11 +12,81 @@ import './App.css'
 import Header from './Header';
 import InfoModal from './InfoModal';
 import { STORAGE_KEY, TOTAL_TIME, WINNING_SCORE } from './const';
-import { getRandomArbitrary, hash } from './utils';
+import { getRandomArbitrary, hash, preParseExpression } from './utils';
 import GameSummary from './GameSummary';
 import { cyrb128, splitmix32 } from './rand';
+import SettingsModal from './SettingsModal';
+import { Parser } from 'expr-eval';
 
 const defaultCompleted = [...new Array(20)].reduce((out, _, i) => { out[i + 1] = ""; return out }, {})
+
+const settingValidators = {
+  "+": /\+/,
+  "-": /-/,
+  "*": /\*/,
+  "/": /\//,
+  "^": /\^/,
+  "x!": /\!/,
+  "!x (sf)": /sf/,
+  "44": /\d{2}/,
+  ".": /\./,
+  "' (mi)": /mi/,
+  "√ (sqrt)": /sqrt/,
+  "Γ (g)": /g/,
+}
+
+const defaultSettings = {
+  "+": true,
+  "-": true,
+  "*": true,
+  "/": true,
+  "^": true,
+  "x!": true,
+  "!x (sf)": false,
+  "44": false,
+  ".": false,
+  "' (mi)": false,
+  "√ (sqrt)": false,
+  "Γ (g)": false,
+}
+
+const gamma = (arg1: number) => {
+  const n = arg1 - 1;
+  if (n <= 0) return 1;
+  let tot = 1;
+  for (let i = n; i >1; i--) {
+    tot *= i;
+  }
+  return tot;
+}
+
+const factDiv = function(x: number, k: number): number {
+  return (k >= x) ? 1 : (x * factDiv(x-1,k)); 
+}
+
+// Copied from: https://stackoverflow.com/a/36994144
+const subfactorial = (x: number) => {
+  let p = 1;
+  let sum = 0;
+  for (let k=0; k <= x; k++) {
+    sum += p * factDiv(x, k);
+    p *= -1;
+  }
+  return sum;
+}
+
+const parser = new Parser();
+parser.functions.sf = subfactorial;
+
+parser.functions.mi = function(arg1: number) {
+  return 1 /arg1;
+}
+
+parser.functions.sqrt = function(arg1: number) {
+  return Math.sqrt(arg1);
+}
+
+parser.functions.g = gamma;
 
 function App() {
   return (
@@ -41,6 +111,7 @@ function InnerApp() {
   const [dailyGameCompleted, setDailyGameCompleted] = createSignal(JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')?.date === (new Date().toDateString()))
   const [time, setTime] = createSignal(TOTAL_TIME);
   const [infoModalOpen, setInfoModalOpen] = createSignal(false);
+  const [settingsModalOpen, setSettingsModalOpen] = createSignal(false);
   const [initialParamsUsed, setInitialParamsUsed] = createSignal(false);
   const [gameStarted, setGameStarted] = createSignal(false);
   const [todaysGame, setTodaysGame] = createSignal(false);
@@ -49,6 +120,7 @@ function InnerApp() {
   const [expressionIsValid, setExpressionIsValid] = createSignal(true);
   const [tooltipShown, setTooltipShown] = createSignal(false);
   const [params, setParams] = useSearchParams();
+  const [settings, setSettings] = createSignal(defaultSettings);
   let ref: HTMLInputElement | undefined;
 
   const handleStartTodaysGame = () => {
@@ -142,8 +214,12 @@ function InnerApp() {
 
   const handleInputUpdate = () => {
     const input = ref?.value || '';
-    const m = new Mexp();
     let isValid = true;
+
+    const leftParens = (input.match(/\(/g) || []).length;
+    const rightParens = (input.match(/\)/g) || []).length;
+    const correctedInput = input.padEnd(input.length + (leftParens - rightParens), ")")
+    const further = preParseExpression(correctedInput, parser);
 
     if (!input) {
       setExpressionIsValid(true);
@@ -151,12 +227,16 @@ function InnerApp() {
       return;
     }
 
-    if (input.match(/\d{2}/)) {
-      isValid = false;
+    for (const [setting, enabled] of Object.entries(settings())) {
+      if (enabled) continue;
+
+      if (further.match(settingValidators[setting])) {
+        isValid = false;
+      }
     }
 
     for (const digit of digits()) {
-      const count = ([...input.matchAll(new RegExp(String(digit), "g"))] || []).length;
+      const count = ([...further.matchAll(new RegExp(String(digit), "g"))] || []).length;
       if (count !== expectedCounts()[digit]) {
         isValid = false;
       }
@@ -164,17 +244,25 @@ function InnerApp() {
 
     try {
       setExpressionIsValid(isValid || !ref?.value)
-      //@ts-ignore library types are wrong
-      const o = m.eval(ref.value);
+      
+      const expr = parser.parse(further);
+      const o = expr.evaluate();
+
       setOutput(String(o));
       if (isValid && String(o) in completed() && !completed()[o] && o >= 1 && o <= 20) {
-        setCompleted(prev => ({ ...prev, [String(o)]: { expr: ref?.value, onTime: inProgress() } }))
+        setCompleted(prev => ({ ...prev, [String(o)]: { expr: correctedInput, onTime: inProgress() } }))
       }
     } catch (e) {
       setExpressionIsValid(false);
       setOutput("");
     }
   }
+
+  createEffect(() => {
+    // want to revalidate current input when settings change
+    settings();
+    handleInputUpdate();
+  })
 
   return (
     <>
@@ -183,13 +271,23 @@ function InnerApp() {
         dailyGameCompleted={dailyGameCompleted()}
         isTodaysGame={todaysGame()}
         inProgress={inProgress()}
-        onClick={() => setInfoModalOpen(true)} 
+        onInfoClick={() => setInfoModalOpen(true)} 
+        onSettingsClick={() => setSettingsModalOpen(true)}
         onStartTodaysGame={handleStartTodaysGame}
       />
       <div class="container my-4 flex flex-col items-center">
         <Toaster />
         <Show when={infoModalOpen()}>
          <InfoModal onClose={() => setInfoModalOpen(false)} />
+        </Show>
+
+        <Show when={settingsModalOpen()}>
+          <SettingsModal 
+            onReset={() => setSettings(defaultSettings)}
+            settings={settings()}
+            onUpdateSetting={(setting, value) => setSettings((oldSettings) => ({...oldSettings, [setting]: value}))}
+            onClose={() => setSettingsModalOpen(false)}
+          />
         </Show>
 
         <button class="w-full max-w-[350px] h-[350px]" onClick={handleGameStart}>

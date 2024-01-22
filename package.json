@@ -12,6 +12,7 @@
     "@solid-primitives/input-mask": "^0.2.0",
     "@solidjs/router": "^0.10.9",
     "classnames": "^2.5.1",
+    "expr-eval": "^2.0.2",
     "math-expression-evaluator": "^2.0.4",
     "solid-icons": "^1.1.0",
     "solid-js": "^1.8.7",
