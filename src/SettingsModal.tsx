@@ -7,6 +7,7 @@ interface Props {
 	onClose: () => void,
 	onUpdateSetting: (setting: string, value: boolean) => void,
 	onReset: () => void,
+	onRandomize: () => void,
 	settings: Record<string, boolean>
 }
 
@@ -23,7 +24,7 @@ export default function SettingsModal(props: Props) {
 				</div>
 
 				<div class="overflow-y-scroll pb-8">
-					<Heading class="mb-4">Operations (not currently saved across sessions)</Heading>
+					<Heading class="mb-4">Enabled Operations (not saved across sessions)</Heading>
 
 					<div class="grid grid-cols-4 gap-4">
 						<For each={Object.entries(props.settings)}>{([setting, enabled]) => 
@@ -32,7 +33,10 @@ export default function SettingsModal(props: Props) {
 						</For>
 					</div>
 
-					<button class="bg-green-600 rounded p-3 mt-8 font-semibold" onClick={props.onReset}>Reset to Default</button>
+					<div class="flex gap-3">
+						<button class="bg-green-600 rounded p-3 mt-8 font-semibold" onClick={props.onReset}>Reset to Default</button>
+						<button class="bg-green-600 rounded p-3 mt-8 font-semibold" onClick={props.onRandomize}>Randomize</button>
+					</div>
 				</div>
 			</div>
 		</>

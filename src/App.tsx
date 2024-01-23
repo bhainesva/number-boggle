@@ -286,6 +286,13 @@ function InnerApp() {
             onReset={() => setSettings(defaultSettings)}
             settings={settings()}
             onUpdateSetting={(setting, value) => setSettings((oldSettings) => ({...oldSettings, [setting]: value}))}
+            onRandomize={() => setSettings((oldSettings) => {
+              const newSettings = {};
+              for (const setting of Object.keys(oldSettings)) {
+                newSettings[setting] = Math.random() < 0.5;
+              }
+              return newSettings
+            })}
             onClose={() => setSettingsModalOpen(false)}
           />
         </Show>
