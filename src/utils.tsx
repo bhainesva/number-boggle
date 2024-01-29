@@ -12,7 +12,7 @@ export const Tile: ParentComponent<{ color?: string }> = (props) => {
   )
 }
 
-export const Heading: ParentComponent<{class: string}> = (props) => {
+export const Heading: ParentComponent<{class?: string}> = (props) => {
   const c = children(() => props.children);
 
   return (
@@ -48,11 +48,11 @@ export function preParseExpression(expressionString: string, p: Parser) {
   });
 
   // Build an object with replacement rules. (The order matters!)
-  var re = {};
+  const re: Record<string, {expr: RegExp, repl: string}> = {};
 
   // Replace function names with tokens. Include opening parenthesis of the function
   // argument, to avoid it being treated as an implicit multiplication.
-  for (var i in operators) {
+  for (const i in operators) {
     re['op' + i] = {
       expr : new RegExp(operators[i] + '\\('),
       repl : '<' + i + '>',
@@ -80,7 +80,7 @@ export function preParseExpression(expressionString: string, p: Parser) {
     repl : 'PI',
   };
   // Return any function names to the expression.
-  for (var i in operators) {
+  for (const i in operators) {
     re['opBack' + i] = {
       expr : new RegExp('<' + i + '>'),
       repl : operators[i] + '(',
@@ -88,7 +88,7 @@ export function preParseExpression(expressionString: string, p: Parser) {
   }
 
   // Apply the replacement rules.
-  for (var i in re) {
+  for (const i in re) {
     while (expressionString.replace(re[i].expr, re[i].repl) != expressionString) {
       expressionString = expressionString.replace(re[i].expr, re[i].repl);
     }

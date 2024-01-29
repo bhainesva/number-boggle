@@ -1,5 +1,4 @@
 import { For, createEffect, createSignal, Show } from 'solid-js'
-import Mexp from 'math-expression-evaluator';
 import { IoWarning } from 'solid-icons/io'
 import classNames from 'classnames';
 import { Toaster } from 'solid-toast';
@@ -20,7 +19,9 @@ import { Parser } from 'expr-eval';
 
 const defaultCompleted = [...new Array(20)].reduce((out, _, i) => { out[i + 1] = ""; return out }, {})
 
-const settingValidators = {
+type Setting = "+" | "-" | "*" | "/" | "^" | "x!" | "!x (sf)" | "44" | "." | "' (mi)" | "√ (sqrt)" | "Γ (g)"
+
+const settingValidators: Record<Setting, RegExp> = {
   "+": /\+/,
   "-": /-/,
   "*": /\*/,
@@ -33,9 +34,9 @@ const settingValidators = {
   "' (mi)": /mi/,
   "√ (sqrt)": /sqrt/,
   "Γ (g)": /g/,
-}
+} as const;
 
-const defaultSettings = {
+const defaultSettings: Record<Setting, boolean> = {
   "+": true,
   "-": true,
   "*": true,
@@ -48,27 +49,27 @@ const defaultSettings = {
   "' (mi)": false,
   "√ (sqrt)": false,
   "Γ (g)": false,
-}
+} as const;
 
 const gamma = (arg1: number) => {
   const n = arg1 - 1;
   if (n <= 0) return 1;
   let tot = 1;
-  for (let i = n; i >1; i--) {
+  for (let i = n; i > 1; i--) {
     tot *= i;
   }
   return tot;
 }
 
-const factDiv = function(x: number, k: number): number {
-  return (k >= x) ? 1 : (x * factDiv(x-1,k)); 
+const factDiv = function (x: number, k: number): number {
+  return (k >= x) ? 1 : (x * factDiv(x - 1, k));
 }
 
 // Copied from: https://stackoverflow.com/a/36994144
 const subfactorial = (x: number) => {
   let p = 1;
   let sum = 0;
-  for (let k=0; k <= x; k++) {
+  for (let k = 0; k <= x; k++) {
     sum += p * factDiv(x, k);
     p *= -1;
   }
@@ -78,11 +79,11 @@ const subfactorial = (x: number) => {
 const parser = new Parser();
 parser.functions.sf = subfactorial;
 
-parser.functions.mi = function(arg1: number) {
-  return 1 /arg1;
+parser.functions.mi = function (arg1: number) {
+  return 1 / arg1;
 }
 
-parser.functions.sqrt = function(arg1: number) {
+parser.functions.sqrt = function (arg1: number) {
   return Math.sqrt(arg1);
 }
 
@@ -116,11 +117,11 @@ function InnerApp() {
   const [gameStarted, setGameStarted] = createSignal(false);
   const [todaysGame, setTodaysGame] = createSignal(false);
   const [output, setOutput] = createSignal(" ");
-  const [completed, setCompleted] = createSignal<Record<number, { expr: string, onTime: boolean }>>({...defaultCompleted})
+  const [completed, setCompleted] = createSignal<Record<number, { expr: string, onTime: boolean }>>({ ...defaultCompleted })
   const [expressionIsValid, setExpressionIsValid] = createSignal(true);
   const [tooltipShown, setTooltipShown] = createSignal(false);
   const [params, setParams] = useSearchParams();
-  const [settings, setSettings] = createSignal(defaultSettings);
+  const [settings, setSettings] = createSignal<Record<keyof typeof defaultSettings, boolean>>(defaultSettings);
   let ref: HTMLInputElement | undefined;
 
   const handleStartTodaysGame = () => {
@@ -200,7 +201,7 @@ function InnerApp() {
       ref.value = '';
       setOutput('');
     }
-    
+
     setGameStarted(true);
     setTodaysGame(false);
     setDigits(newDigits);
@@ -230,7 +231,7 @@ function InnerApp() {
     for (const [setting, enabled] of Object.entries(settings())) {
       if (enabled) continue;
 
-      if (further.match(settingValidators[setting])) {
+      if (further.match(settingValidators[setting as Setting])) {
         isValid = false;
       }
     }
@@ -244,7 +245,7 @@ function InnerApp() {
 
     try {
       setExpressionIsValid(isValid || !ref?.value)
-      
+
       const expr = parser.parse(further);
       const o = expr.evaluate();
 
@@ -266,39 +267,18 @@ function InnerApp() {
 
   return (
     <>
-      <Header 
+      <Header
         time={time()}
         dailyGameCompleted={dailyGameCompleted()}
         isTodaysGame={todaysGame()}
         inProgress={inProgress()}
-        onInfoClick={() => setInfoModalOpen(true)} 
+        onInfoClick={() => setInfoModalOpen(true)}
         onSettingsClick={() => setSettingsModalOpen(true)}
         onStartTodaysGame={handleStartTodaysGame}
       />
-      <div class="container my-4 flex flex-col items-center">
-        <Toaster />
-        <Show when={infoModalOpen()}>
-         <InfoModal onClose={() => setInfoModalOpen(false)} />
-        </Show>
-
-        <Show when={settingsModalOpen()}>
-          <SettingsModal 
-            onReset={() => setSettings(defaultSettings)}
-            settings={settings()}
-            onUpdateSetting={(setting, value) => setSettings((oldSettings) => ({...oldSettings, [setting]: value}))}
-            onRandomize={() => setSettings((oldSettings) => {
-              const newSettings = {};
-              for (const setting of Object.keys(oldSettings)) {
-                newSettings[setting] = Math.random() < 0.5;
-              }
-              return newSettings
-            })}
-            onClose={() => setSettingsModalOpen(false)}
-          />
-        </Show>
-
-        <button class="w-full max-w-[350px] h-[350px]" onClick={handleGameStart}>
-          <ul class="h-full font-bold text-6xl grid grid-cols-2 gap-4">
+      <div class="container my-4 h-full flex flex-col flex-grow items-center">
+        <button class="w-full max-w-[350px] h-[350px] short:h-[100px]" onClick={handleGameStart}>
+          <ul class="h-full font-bold text-6xl grid grid-cols-2 gap-4 short:grid-cols-4">
             <For each={digits()}>{(digit) =>
               <li class="flex justify-center items-center bg-slate-500 p-4 rounded">
                 {digit}
@@ -309,6 +289,27 @@ function InnerApp() {
         </button>
 
         <div class="flex justify-between h-[60px] w-full max-w-[800px] mt-10 mb-6">
+          <Toaster />
+          <Show when={infoModalOpen()}>
+            <InfoModal onClose={() => setInfoModalOpen(false)} />
+          </Show>
+
+          <Show when={settingsModalOpen()}>
+            <SettingsModal
+              onReset={() => setSettings(defaultSettings)}
+              settings={settings()}
+              onUpdateSetting={(setting, value) => setSettings((oldSettings) => ({ ...oldSettings, [setting]: value }))}
+              onRandomize={() => setSettings((oldSettings) => {
+                const newSettings: Partial<Record<Setting, boolean>> = {};
+                for (const setting of Object.keys(oldSettings)) {
+                  newSettings[setting as Setting] = Math.random() < 0.5;
+                }
+                return newSettings as Record<Setting, boolean>;
+              })}
+              onClose={() => setSettingsModalOpen(false)}
+            />
+          </Show>
+
           <input class="text-2xl shrink-0 rounded p-3 text-black w-full max-w-[500px] bg-slate-300" ref={ref} type="text" onInput={handleInputUpdate} onPaste={handleInputUpdate} />
           <div class="flex flex-col items-center">
             <div class="relative basis-1/3 shrink-0">
