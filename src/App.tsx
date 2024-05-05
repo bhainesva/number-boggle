@@ -142,6 +142,7 @@ function InnerApp() {
     const existingData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
     if (existingData?.date === (new Date()).toDateString()) {
       setCompleted(existingData.completed)
+      setTime(existingData.time)
       setInProgress(false);
       return;
     }
@@ -163,6 +164,7 @@ function InnerApp() {
     setDailyGameCompleted(true);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       date: (new Date()).toDateString(),
+      time: time(),
       completed: completed(),
     }));
   }
