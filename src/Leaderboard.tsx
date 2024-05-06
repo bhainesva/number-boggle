@@ -65,7 +65,7 @@ export default function Leaderboard() {
         if (a.Score.N !== b.Score.N)
           return Number(b.Score.N) - Number(a.Score.N);
 
-        return Number(b.Time.N) - Number(a.Score.N);
+        return Number(a.Time.N) - Number(b.Time.N);
       }
     );
 
