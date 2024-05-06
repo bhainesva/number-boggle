@@ -83,7 +83,7 @@ export default function GameSummary(props: {
                   onTime ? expr || "" : "",
                 ])
               ),
-              time: props.time,
+              time: TOTAL_TIME - props.time,
               score: props.numbersSolved,
             };
             Promise.all([
