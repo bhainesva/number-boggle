@@ -282,6 +282,10 @@ function InnerApp() {
       }
     }
 
+    if (([...further.matchAll(/\d/g)] || []).length > 4) {
+      isValid = false;
+    }
+
     try {
       setExpressionIsValid(isValid || !ref?.value);
 
