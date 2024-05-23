@@ -1,27 +1,25 @@
-import { children, ParentComponent } from 'solid-js'
-import classNames from 'classnames';
+import { children, ParentComponent } from "solid-js";
+import classNames from "classnames";
 import { Parser } from "expr-eval";
 
 export const Tile: ParentComponent<{ color?: string }> = (props) => {
   const c = children(() => props.children);
 
-  const cls = classNames("rounded py-1 px-1.5", props.color || "bg-slate-500")
+  const cls = classNames("rounded py-1 px-1.5", props.color || "bg-slate-500");
 
-  return (
-    <span class={cls}>{c()}</span>
-  )
-}
+  return <span class={cls}>{c()}</span>;
+};
 
-export const Heading: ParentComponent<{class?: string}> = (props) => {
+export const Heading: ParentComponent<{ class?: string }> = (props) => {
   const c = children(() => props.children);
 
   return (
     <h2 class={classNames("my-2 text-2xl font-bold", props.class)}>{c()}</h2>
-  )
-}
+  );
+};
 
 export function hash(n: any): number {
-  return ((0x0000FFFF & n) << 16) + ((0xFFFF0000 & n) >> 16)
+  return ((0x0000ffff & n) << 16) + ((0xffff0000 & n) >> 16);
 }
 
 export function getRandomArbitrary(min: number, max: number) {
@@ -43,27 +41,27 @@ export function preParseExpression(expressionString: string, p: Parser) {
 
   // Sort the function names by length so we replace 'asin' before 'sin'. (This
   // avoids breaking function names.)
-  operators.sort(function(a, b){
+  operators.sort(function (a, b) {
     return b.length - a.length;
   });
 
   // Build an object with replacement rules. (The order matters!)
-  const re: Record<string, {expr: RegExp, repl: string}> = {};
+  const re: Record<string, { expr: RegExp; repl: string }> = {};
 
   // Replace function names with tokens. Include opening parenthesis of the function
   // argument, to avoid it being treated as an implicit multiplication.
   for (const i in operators) {
-    re['op' + i] = {
-      expr : new RegExp(operators[i] + '\\('),
-      repl : '<' + i + '>',
+    re["op" + i] = {
+      expr: new RegExp(operators[i] + "\\("),
+      repl: "<" + i + ">",
     };
   }
 
   // Special case: The constant PI is understood by Parser, and should be replaced
   // to avoid treating the letters as an implicit multiplication.
   re.pi = {
-    expr : /pi/i,
-    repl : 'π',
+    expr: /pi/i,
+    repl: "π",
   };
 
   // Replacements making implicit multiplication explicit:
@@ -72,27 +70,40 @@ export function preParseExpression(expressionString: string, p: Parser) {
   // Cred to Reut Sharabani.
   re.implicit = {
     expr: /([0-9]+|[a-zπ\\)])(?=[a-zπ<\\(])/i,
-    repl : '$1*',
+    repl: "$1*",
   };
   // When implicit multiplications have been taken care of, we can return 'π' to 'PI'.
   re.piBack = {
     expr: /π/,
-    repl : 'PI',
+    repl: "PI",
   };
   // Return any function names to the expression.
   for (const i in operators) {
-    re['opBack' + i] = {
-      expr : new RegExp('<' + i + '>'),
-      repl : operators[i] + '(',
+    re["opBack" + i] = {
+      expr: new RegExp("<" + i + ">"),
+      repl: operators[i] + "(",
     };
   }
 
   // Apply the replacement rules.
   for (const i in re) {
-    while (expressionString.replace(re[i].expr, re[i].repl) != expressionString) {
+    while (
+      expressionString.replace(re[i].expr, re[i].repl) != expressionString
+    ) {
       expressionString = expressionString.replace(re[i].expr, re[i].repl);
     }
   }
 
   return expressionString;
 }
+
+export const currentDateString = () => {
+  const [month, day, year] = new Date()
+    .toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "numeric",
+    })
+    .split("/");
+  return `${year}-${month}-${day}`;
+};

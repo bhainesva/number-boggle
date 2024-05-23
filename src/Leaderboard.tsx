@@ -6,6 +6,7 @@ import "./Leaderboard.css";
 import { STORAGE_KEY } from "./const";
 import Spinner from "./Spinner";
 import { mergeStorage } from "./storage";
+import { currentDateString } from "./utils";
 
 const oneToTwenty = [
   "1",
@@ -36,14 +37,19 @@ export default function Leaderboard() {
   );
   const [loading, setLoading] = createSignal(false);
   const [expandedRows, setExpandedRows] = createSignal<any>(new Set());
+  const [date, setDate] = createSignal(
+    JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}").leaderboardDate ||
+      currentDateString()
+  );
 
   const refreshScores = async () => {
     setLoading(true);
     Promise.all([
       new Promise((r) => setTimeout(r, 800)),
-      fetchScores(new Date().toISOString().split("T")[0]).then((scores) => {
+      fetchScores(date()).then((scores) => {
         mergeStorage({
           leaderboard: scores,
+          leaderboardDate: date(),
         });
         setScores(scores);
       }),
@@ -154,12 +160,21 @@ export default function Leaderboard() {
           </For>
         </div>
       </Show>
-      <button
-        class="mt-12 ml-auto mr-auto flex p-2 items-center justify-center gap-2 font-bold rounded bg-green-500"
-        onClick={refreshScores}
-      >
-        Refresh <IoReload />
-      </button>
+      <div class="flex items-center justify-center mt-12 mx-auto gap-4">
+        <button
+          class="flex p-2 items-center justify-center gap-2 font-bold rounded bg-green-500"
+          onClick={refreshScores}
+        >
+          Refresh <IoReload />
+        </button>{" "}
+        for{" "}
+        <input
+          class="text-black"
+          value={date()}
+          type="date"
+          onChange={(e) => setDate(e.target.value)}
+        />
+      </div>
     </div>
   );
 }
