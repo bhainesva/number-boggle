@@ -92,7 +92,7 @@ export default function GameSummary(props: {
                 mergeStorage({
                   submitted: true,
                 });
-                toast.success("Submitted!");
+                toast.success("Submitted!", {position: "top-left"});
                 setSubmitted(true);
               }),
             ]).then(() => setSubmitting(false));
