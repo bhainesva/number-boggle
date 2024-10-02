@@ -1,4 +1,4 @@
-import { For, createEffect, createSignal, Show } from "solid-js";
+import { For, createEffect, createSignal, createMemo, Show } from "solid-js";
 import { IoWarning } from "solid-icons/io";
 import classNames from "classnames";
 import { Toaster } from "solid-toast";
@@ -129,6 +129,7 @@ function InnerApp() {
   const [name, setName] = createSignal(
     JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")?.name
   );
+  const [timeOfMostRecentSolution, setTimeOfMostRecentSolution] = createSignal(TOTAL_TIME);
   const [time, setTime] = createSignal(TOTAL_TIME);
   const [leaderboardIsOpen, setLeaderboardIsOpen] = createSignal(false);
   const [infoModalOpen, setInfoModalOpen] = createSignal(false);
@@ -159,6 +160,7 @@ function InnerApp() {
     }
 
     setTime(TOTAL_TIME);
+    setTimeOfMostRecentSolution(TOTAL_TIME);
     setGameStarted(true);
     setDigits(newDigits);
     setParams({ game: hash(newDigits.join("")) });
@@ -192,6 +194,7 @@ function InnerApp() {
       date: new Date().toDateString(),
       time: time(),
       completed: completed(),
+      lastSuccessfulTime: timeOfMostRecentSolution(),
       submitted: false,
     });
   };
@@ -202,6 +205,13 @@ function InnerApp() {
       (tot, cur) => tot + (cur[1].onTime ? 1 : 0),
       0
     );
+
+  createMemo((prev) => {
+    if (prev === numbersSolved()) return prev;
+    
+    setTimeOfMostRecentSolution(TOTAL_TIME - time());
+    return numbersSolved();
+  }, 0)
 
   createEffect(() => {
     if (time() <= 0) {
@@ -245,6 +255,7 @@ function InnerApp() {
     setExpressionIsValid(true);
     setInProgress(true);
     setTime(TOTAL_TIME);
+    setTimeOfMostRecentSolution(TOTAL_TIME);
   };
 
   const handleInputUpdate = () => {
@@ -424,10 +435,10 @@ function InnerApp() {
             <GameSummary
               isTodaysGame={todaysGame()}
               digits={digits()}
-              time={time()}
               name={name()}
               numbersSolved={numbersSolved()}
               completed={completed()}
+              timeOfMostRecentSolution={timeOfMostRecentSolution()}
             />
           </Show>
 

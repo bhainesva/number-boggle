@@ -1,5 +1,5 @@
 import toast from "solid-toast";
-import { STORAGE_KEY, TOTAL_TIME, WINNING_SCORE } from "./const";
+import { STORAGE_KEY, WINNING_SCORE } from "./const";
 import { IoShareSocialSharp } from "solid-icons/io";
 import { createSignal, Show } from "solid-js";
 import classNames from "classnames";
@@ -10,7 +10,7 @@ import { mergeStorage } from "./storage";
 export default function GameSummary(props: {
   completed: Record<string, { expr: string; onTime: boolean }>;
   numbersSolved: number;
-  time: number;
+  timeOfMostRecentSolution: number;
   name: string;
   digits: string[];
   isTodaysGame: boolean;
@@ -24,8 +24,8 @@ export default function GameSummary(props: {
 
   const score = () =>
     props.numbersSolved === WINNING_SCORE
-      ? `${Math.floor((TOTAL_TIME - props.time) / 60)}:${String(
-          (TOTAL_TIME - props.time) % 60
+      ? `${Math.floor((props.timeOfMostRecentSolution) / 60)}:${String(
+          (props.timeOfMostRecentSolution) % 60
         ).padStart(2, "0")}`
       : `${props.numbersSolved}/${WINNING_SCORE}`;
 
@@ -83,7 +83,7 @@ export default function GameSummary(props: {
                   onTime ? expr || "" : "",
                 ])
               ),
-              time: TOTAL_TIME - props.time,
+              time: props.timeOfMostRecentSolution,
               score: props.numbersSolved,
             };
             Promise.all([
